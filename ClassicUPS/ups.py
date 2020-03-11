@@ -13,11 +13,13 @@ class UPSConnection(object):
         'track': 'https://wwwcie.ups.com/ups.app/xml/Track',
         'ship_confirm': 'https://wwwcie.ups.com/ups.app/xml/ShipConfirm',
         'ship_accept': 'https://wwwcie.ups.com/ups.app/xml/ShipAccept',
+        'rate': 'https://wwwcie.ups.com/ups.app/xml/Rate'
     }
     production_urls = {
         'track': 'https://onlinetools.ups.com/ups.app/xml/Track',
         'ship_confirm': 'https://onlinetools.ups.com/ups.app/xml/ShipConfirm',
         'ship_accept': 'https://onlinetools.ups.com/ups.app/xml/ShipAccept',
+        'rate': 'https://onlinetools.ups.com/ups.app/xml/Rate'
     }
 
     def __init__(self, license_number, user_id, password, shipper_number=None,
@@ -41,7 +43,6 @@ class UPSConnection(object):
         xml = u'''
         <?xml version="1.0"?>
         {access_request_xml}
-
         <?xml version="1.0"?>
         {api_xml}
         '''.format(
@@ -68,6 +69,9 @@ class UPSConnection(object):
 
     def create_shipment(self, *args, **kwargs):
         return Shipment(self, *args, **kwargs)
+
+    def create_rate(self, *args, **kwargs):
+        return Rate(self, *args, **kwargs)
 
 class UPSResult(object):
 
@@ -331,3 +335,89 @@ class Shipment(object):
 
     def save_label(self, fd):
         fd.write(self.get_label())
+
+class Rate(object):
+    def __init__(self, ups_conn, from_addr, to_addr, dimensions,
+                weight, dimensions_unit="IN", weight_unit="LBS"):
+        rate_request = {
+            "RatingServiceSelectionRequest": {
+                "Request": {
+                    "TransactionReference": {
+                        "CustomerContext": ""
+                    },
+                    "RequestAction": "Rate",
+                    "RequestOption": "Rate"
+                },
+                "Shipment": {
+                    "Shipper": {
+                        "Name": from_addr['name'],
+                        "ShipperNumber": "",
+                        "Address": {
+                            "AddressLine1": from_addr['address1'],
+                            "City": from_addr['city'],
+                            "StateProvinceCode": from_addr['state'],
+                            "PostalCode": from_addr['postal_code'],
+                            "CountryCode": from_addr['country']
+                        }
+                    },
+                    "ShipTo": {
+                        "CompanyName": to_addr['name'],
+                        "PhoneNumber": to_addr['phone'],
+                        "Address": {
+                            "AddressLine1": to_addr['address1'],
+                            "City": to_addr['city'],
+                            "StateProvinceCode": to_addr['state'],
+                            "PostalCode": to_addr['postal_code'],
+                            "CountryCode": to_addr['country']
+                        }
+                    },
+                    "ShipFrom": {
+                        "CompanyName": from_addr['name'],
+                        "PhoneNumber": from_addr['phone'],
+                        "Address": {
+                            "AddressLine1": from_addr['address1'],
+                            "City": from_addr['city'],
+                            "StateProvinceCode": from_addr['state'],
+                            "PostalCode": from_addr['postal_code'],
+                            "CountryCode": from_addr['country']
+                        }
+                    },
+                    "Service": {
+                        "Code": "03",
+                        "Description": "Ground"
+                    },
+                    "Package": {
+                        "PackagingType": {
+                            "Code": "02",
+                            "Description": "UPS Package"
+                        },
+                        "Dimensions": {
+                            "UnitOfMeasurement": {
+                                "Code": dimensions_unit
+                            },
+                            "Length": dimensions['length'],
+                            "Width": dimensions['width'],
+                            "Height": dimensions['height']
+                        },
+                        "PackageWeight": {
+                            "UnitOfMeasurement": {
+                                "Code": weight_unit
+                            },
+                            "Weight": weight
+                        }
+                    }
+                }
+            }
+        }
+        """
+        Send the request object to UPS API
+        """
+        self.confirm_result = ups_conn._transmit_request("rate", rate_request)
+
+    @property
+    def cost(self):
+        """
+        Get the shipping cost from the response
+        """
+        total_cost = self.confirm_result.dict_response["RatingServiceSelectionResponse"]["RatedShipment"]["TotalCharges"]["MonetaryValue"]
+        return float(total_cost)
