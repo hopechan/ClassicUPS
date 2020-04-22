@@ -195,7 +195,7 @@ class Shipment(object):
                             'PostalCode': from_addr['postal_code'],
                         },
                     },
-                    'ShipTo' : {
+                    'ShipTo': {
                         'CompanyName': to_addr['name'],
                         'AttentionName': to_addr.get('attn') if to_addr.get('attn') else to_addr['name'],
                         'PhoneNumber': to_addr['phone'],
@@ -203,7 +203,7 @@ class Shipment(object):
                             'AddressLine1': to_addr['address1'],
                             'City': to_addr['city'],
                             'StateProvinceCode': to_addr['state'],
-                            'CountryCode': to_addr['country'],
+                            'CountryCode': "US",
                             'PostalCode': to_addr['postal_code'],
                             # 'ResidentialAddress': '',  # TODO: omit this if not residential
                         },
@@ -368,7 +368,7 @@ class Rate(object):
                             "City": to_addr['city'],
                             "StateProvinceCode": to_addr['state'],
                             "PostalCode": to_addr['postal_code'],
-                            "CountryCode": to_addr['country']
+                            "CountryCode": 'US'
                         }
                     },
                     "ShipFrom": {
